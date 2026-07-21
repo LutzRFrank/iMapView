@@ -1,0 +1,9 @@
+{
+  "id" : "edd685bc-5eea-481c-a378-1d744607d6c1",
+  "targets" : [
+    {
+      "id" : "D0CAF246-E166-42B5-8B1E-7EE11C607935",
+      "name" : "iMapView"
+    }
+  ]
+}
