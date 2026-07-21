@@ -1,310 +1,389 @@
-
-//
-//  ContentView.swift – Final Version (Alle Fehler behoben)
-//
-
 import SwiftUI
 import MapKit
-import Combine
-
-// MARK: - Theme
-
-struct Theme {
-    let colorScheme: ColorScheme
-
-    var primary: Color { colorScheme == .dark ? .white : .black }
-    var secondary: Color { colorScheme == .dark ? .white.opacity(0.4) : .black.opacity(0.2) }
-    var accent: Color { colorScheme == .dark ? .white : .black }
-    var background: Color { Color(.systemBackground) }
-    var containerBackground: Color { Color(.secondarySystemBackground) }
-    var mapOverlay: Color { colorScheme == .dark ? .black.opacity(0.7) : .white.opacity(0.7) }
-    var buttonBackground: Color { colorScheme == .dark ? .white : .blue }
-    var buttonText: Color { colorScheme == .dark ? .black : .white }
-}
-
-// MARK: - TimeZoneView
-
-struct TimeZoneView: View {
-    @Environment(\.colorScheme) var colorScheme
-    let timeZone: TimeZone
-    @Binding var selectedTimeZone: TimeZone
-    let isFavorite: Bool
-    let toggleFavorite: () -> Void
-
-    private var theme: Theme { Theme(colorScheme: colorScheme) }
-
-    private func displayName() -> String {
-        let hours = timeZone.secondsFromGMT() / 3600
-        return hours == 0 ? "UTC" : "UTC\(hours >= 0 ? "+" : "")\(hours)"
-    }
-
-    private func currentTime() -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = timeZone
-        formatter.timeStyle = .short
-        return formatter.string(from: Date())
-    }
-
-    var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 2) {
-                Text(displayName())
-                    .font(.caption)
-                if isFavorite {
-                    Image(systemName: "heart.fill")
-                        .resizable()
-                        .frame(width: 10, height: 10)
-                        .foregroundColor(.red)
-                }
-            }
-            .foregroundColor(theme.primary)
-
-            Text(currentTime())
-                .font(.caption2)
-                .foregroundColor(theme.primary)
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(timeZone == selectedTimeZone ? theme.secondary.opacity(0.2) : Color.clear)
-        )
-        .onTapGesture {
-            selectedTimeZone = timeZone
-        }
-        .onLongPressGesture {
-            toggleFavorite()
-        }
-    }
-}
-
-// MARK: - ClockView
-
-struct ClockView: View {
-    @Environment(\.colorScheme) var colorScheme
-    @State private var currentTime = Date()
-    @Binding var selectedTimeZone: TimeZone
-
-    private var theme: Theme { Theme(colorScheme: colorScheme) }
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    private func formattedTime() -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = selectedTimeZone
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: currentTime)
-    }
-
-    private func angle(for component: Calendar.Component, divisor: Double) -> Double {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents(in: selectedTimeZone, from: currentTime)
-        let value = components.value(for: component) ?? 0
-        return Double(value) * 360.0 / divisor
-    }
-
-    var body: some View {
-        VStack(spacing: 60) {
-            Text(formattedTime())
-                .font(.system(size: 32, weight: .bold, design: .monospaced))
-                .foregroundColor(theme.primary)
-
-            ZStack {
-                Circle().stroke(theme.secondary, lineWidth: 4)
-
-                ForEach(0..<12) { hour in
-                    Rectangle()
-                        .fill(theme.primary)
-                        .frame(width: 2, height: 15)
-                        .offset(y: -70)
-                        .rotationEffect(.degrees(Double(hour) * 30))
-                }
-
-                ForEach(0..<60) { minute in
-                    Rectangle()
-                        .fill(theme.primary.opacity(0.5))
-                        .frame(width: 1, height: 8)
-                        .offset(y: -70)
-                        .rotationEffect(.degrees(Double(minute) * 6))
-                }
-
-                Group {
-                    Rectangle()
-                        .fill(theme.primary)
-                        .frame(width: 4, height: 40)
-                        .offset(y: -20)
-                        .rotationEffect(.degrees(angle(for: .hour, divisor: 12)))
-
-                    Rectangle()
-                        .fill(theme.primary.opacity(0.8))
-                        .frame(width: 3, height: 60)
-                        .offset(y: -30)
-                        .rotationEffect(.degrees(angle(for: .minute, divisor: 60)))
-
-                    Rectangle()
-                        .fill(Color.red)
-                        .frame(width: 1, height: 70)
-                        .offset(y: -35)
-                        .rotationEffect(.degrees(angle(for: .second, divisor: 60)))
-
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 8, height: 8)
-                }
-            }
-            .frame(width: 150, height: 150)
-        }
-        .onReceive(timer) { currentTime = $0 }
-    }
-}
-
-// MARK: - ContentView
+import CoreLocation
 
 struct ContentView: View {
-    @Environment(\.colorScheme) var colorScheme
-    @State private var selectedTimeZone = TimeZone(identifier: "GMT") ?? .current
-    @AppStorage("favoriteTimeZones") private var favoriteRaw: String = "[]"
+    private static let destinations: [TimeZoneDestination] = [
+        .init(city: "Honolulu", identifier: "Pacific/Honolulu", latitude: 21.31, longitude: -157.86),
+        .init(city: "Los Angeles", identifier: "America/Los_Angeles", latitude: 34.05, longitude: -118.24),
+        .init(city: "New York", identifier: "America/New_York", latitude: 40.71, longitude: -74.01),
+        .init(city: "São Paulo", identifier: "America/Sao_Paulo", latitude: -23.55, longitude: -46.63),
+        .init(city: "London", identifier: "Europe/London", latitude: 51.51, longitude: -0.13),
+        .init(city: "Berlin", identifier: "Europe/Berlin", latitude: 52.52, longitude: 13.41),
+        .init(city: "Cairo", identifier: "Africa/Cairo", latitude: 30.04, longitude: 31.24),
+        .init(city: "Dubai", identifier: "Asia/Dubai", latitude: 25.20, longitude: 55.27),
+        .init(city: "Delhi", identifier: "Asia/Kolkata", latitude: 28.61, longitude: 77.21),
+        .init(city: "Kathmandu", identifier: "Asia/Kathmandu", latitude: 27.72, longitude: 85.32),
+        .init(city: "Bangkok", identifier: "Asia/Bangkok", latitude: 13.76, longitude: 100.50),
+        .init(city: "Tokyo", identifier: "Asia/Tokyo", latitude: 35.68, longitude: 139.69),
+        .init(city: "Sydney", identifier: "Australia/Sydney", latitude: -33.87, longitude: 151.21),
+        .init(city: "Auckland", identifier: "Pacific/Auckland", latitude: -36.85, longitude: 174.76)
+    ]
 
-    private var favoriteIdentifiers: [String] {
-        get {
-            (try? JSONDecoder().decode([String].self, from: Data(favoriteRaw.utf8))) ?? []
-        }
-        set {
-            if let data = try? JSONEncoder().encode(newValue),
-               let string = String(data: data, encoding: .utf8) {
-                favoriteRaw = string
-            }
-        }
-    }
-
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-        span: MKCoordinateSpan(latitudeDelta: 60, longitudeDelta: 60)
-    )
-
-    private var theme: Theme { Theme(colorScheme: colorScheme) }
-
-    private let timeZones: [TimeZone] = [
-        "America/Los_Angeles", "America/Denver", "America/Chicago",
-        "America/New_York", "America/Halifax", "America/Sao_Paulo",
-        "Atlantic/South_Georgia", "Atlantic/Azores", "GMT",
-        "Europe/Paris", "Europe/Kiev", "Europe/Moscow",
-        "Asia/Shanghai", "Asia/Tokyo"
-    ].compactMap(TimeZone.init(identifier:))
-
-    private func timeZoneFrom(longitude: Double) -> TimeZone {
-        let offsetHours = Int(round(longitude / 15.0))
-        let seconds = offsetHours * 3600
-        return timeZones.min(by: { abs($0.secondsFromGMT() - seconds) < abs($1.secondsFromGMT() - seconds) }) ?? .current
-    }
-
-    private func updateRegion(for timeZone: TimeZone) {
-        let offset = Double(timeZone.secondsFromGMT()) / 3600.0
-        let longitude = offset * 15.0
-        let delta = max(20.0, abs(longitude) * 2)
-        region = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 0, longitude: longitude),
-            span: MKCoordinateSpan(latitudeDelta: delta, longitudeDelta: delta)
+    @StateObject private var model = TimeZoneMapModel()
+    @StateObject private var boundaryModel = TimeZoneBoundaryModel()
+    @State private var cameraPosition: MapCameraPosition = .region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 30, longitude: 0),
+            span: MKCoordinateSpan(latitudeDelta: 85, longitudeDelta: 85)
         )
-    }
+    )
+    @State private var cardOffset: CGSize = .zero
+    @GestureState private var cardDragOffset: CGSize = .zero
 
-    private func timeDifferenceText(from base: TimeZone, to target: TimeZone) -> String {
-        let diff = (target.secondsFromGMT() - base.secondsFromGMT()) / 3600
-        if diff == 0 { return "gleich wie hier" }
-        return diff > 0 ? "\(diff)h vor dir" : "\(-diff)h hinter dir"
+    private var selectedBoundaryIdentifiers: Set<String> {
+        let identifiers = Set(boundaryModel.polygons.map(\.timeZoneIdentifier))
+        return Set(identifiers.filter { candidate in
+            guard let candidateTimeZone = TimeZone(identifier: candidate) else { return false }
+            return TimeZoneRuleMatcher.hasSameRules(candidateTimeZone, model.timeZone)
+        })
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 15)
-                .fill(theme.containerBackground)
-                .frame(height: 140)
-                .overlay(
-                    VStack(spacing: 6) {
-                        Text(selectedTimeZone.localizedName(for: .generic, locale: .current) ?? selectedTimeZone.identifier)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(theme.primary)
-
-                        Text(timeDifferenceText(from: .current, to: selectedTimeZone))
-                            .font(.system(size: 18))
-                            .foregroundColor(theme.primary)
-                    }
-                )
-                .padding(.horizontal)
-
-            RoundedRectangle(cornerRadius: 15)
-                .fill(theme.containerBackground)
-                .overlay(
-                    ZStack {
-                        if #available(iOS 17.0, *) {
-                            Map(position: .constant(.region(region))) {}
-                                .mapStyle(.standard(elevation: .flat))
-                                .onMapCameraChange { ctx in
-                                    let tz = timeZoneFrom(longitude: ctx.region.center.longitude)
-                                    if tz != selectedTimeZone {
-                                        selectedTimeZone = tz
-                                        updateRegion(for: tz)
-                                    }
-                                }
-                        } else {
-                            Map(coordinateRegion: $region)
-                                .onAppear {
-                                    Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-                                        let tz = timeZoneFrom(longitude: region.center.longitude)
-                                        if tz != selectedTimeZone {
-                                            selectedTimeZone = tz
-                                            updateRegion(for: tz)
-                                        }
-                                    }
-                                }
-                        }
-
-                        Color(.secondarySystemBackground)
-                            .opacity(colorScheme == .dark ? 0.2 : 0.4)
-                            .allowsHitTesting(false)
-
-                        VStack {
-                            ClockView(selectedTimeZone: $selectedTimeZone)
-                                .padding()
-                            Text(selectedTimeZone.identifier)
-                                .font(.caption)
-                                .foregroundColor(theme.primary)
-                        }
-                    }
-                )
-                .padding(.horizontal)
-                .onChange(of: selectedTimeZone) { updateRegion(for: $1) }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
-                    ForEach(timeZones, id: \.identifier) { tz in
-                        TimeZoneView(
-                            timeZone: tz,
-                            selectedTimeZone: $selectedTimeZone,
-                            isFavorite: favoriteIdentifiers.contains(tz.identifier),
-                            toggleFavorite: {
-                                if var decoded = try? JSONDecoder().decode([String].self, from: Data(favoriteRaw.utf8)) {
-                                    if let index = decoded.firstIndex(of: tz.identifier) {
-                                        decoded.remove(at: index)
-                                    } else {
-                                        decoded.append(tz.identifier)
-                                    }
-                                    if let encoded = try? JSONEncoder().encode(decoded),
-                                       let encodedString = String(data: encoded, encoding: .utf8) {
-                                        favoriteRaw = encodedString
-                                    }
-                                }
-                            }
-                        )
+        NavigationStack {
+            ZStack {
+                Map(position: $cameraPosition, interactionModes: .all) {
+                    ForEach(boundaryModel.polygons) { boundary in
+                        let isSelected = selectedBoundaryIdentifiers.contains(boundary.timeZoneIdentifier)
+                        MapPolygon(boundary.polygon)
+                            .foregroundStyle(isSelected ? .blue.opacity(0.08) : .clear)
+                            .stroke(
+                                isSelected ? .blue.opacity(0.72) : .primary.opacity(0.22),
+                                lineWidth: isSelected ? 1.6 : 0.65
+                            )
                     }
                 }
-                .padding(.horizontal)
+                    .mapStyle(.standard(elevation: .flat))
+                    .mapControls {
+                        MapCompass()
+                        MapScaleView()
+                    }
+                    .onMapCameraChange(frequency: .onEnd) { context in
+                        model.resolveTimeZone(at: context.region.center)
+                    }
+                    .ignoresSafeArea(edges: .bottom)
+
+                Crosshair()
+                    .allowsHitTesting(false)
+
+                VStack {
+                    TimeZoneCard(model: model)
+                        .overlay(alignment: .top) {
+                            Capsule()
+                                .fill(.secondary.opacity(0.45))
+                                .frame(width: 42, height: 5)
+                                .frame(width: 72, height: 30)
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 2)
+                                        .updating($cardDragOffset) { value, state, _ in
+                                            state = value.translation
+                                        }
+                                        .onEnded { value in
+                                            cardOffset.width += value.translation.width
+                                            cardOffset.height += value.translation.height
+                                        }
+                                )
+                        }
+                        .offset(
+                            x: cardOffset.width + cardDragOffset.width,
+                            y: cardOffset.height + cardDragOffset.height
+                        )
+                    Spacer()
+                    statusPill
+                    TimeZoneStrip(destinations: Self.destinations, selectedIdentifier: model.timeZone.identifier) { destination in
+                        withAnimation(.easeInOut(duration: 0.8)) {
+                            cameraPosition = .region(
+                                MKCoordinateRegion(
+                                    center: destination.coordinate,
+                                    span: MKCoordinateSpan(latitudeDelta: 12, longitudeDelta: 12)
+                                )
+                            )
+                        }
+                        model.resolveTimeZone(at: destination.coordinate)
+                    }
+                }
+                .padding()
             }
-            .frame(height: 60)
-            .background(theme.containerBackground)
+            .navigationTitle("World Time")
+            .navigationBarTitleDisplayMode(.inline)
+            .task {
+                guard !model.hasResolvedInitialLocation else { return }
+                model.resolveTimeZone(at: CLLocationCoordinate2D(latitude: 30, longitude: 0))
+            }
+            .task {
+                await boundaryModel.loadIfNeeded()
+            }
         }
-        .padding(.top, 20)
-        .onAppear {
-            updateRegion(for: selectedTimeZone)
+    }
+
+    @ViewBuilder
+    private var statusPill: some View {
+        switch model.status {
+        case .idle:
+            Label("Karte bewegen, um eine Zeitzone zu wählen", systemImage: "hand.draw")
+                .statusPillStyle()
+        case .loading:
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("Zeitzone wird bestimmt …")
+            }
+            .statusPillStyle()
+        case .resolved:
+            EmptyView()
+        case .failed:
+            Label("Hier konnte keine Zeitzone bestimmt werden", systemImage: "exclamationmark.triangle")
+                .statusPillStyle()
         }
+    }
+}
+
+private enum TimeZoneRuleMatcher {
+    static func hasSameRules(_ lhs: TimeZone, _ rhs: TimeZone) -> Bool {
+        if lhs.identifier == rhs.identifier { return true }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let currentYear = calendar.component(.year, from: .now)
+
+        for year in currentYear...(currentYear + 2) {
+            for month in 1...12 {
+                guard let date = calendar.date(from: DateComponents(year: year, month: month, day: 1)) else {
+                    continue
+                }
+                if lhs.secondsFromGMT(for: date) != rhs.secondsFromGMT(for: date) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+}
+
+private struct TimeZoneDestination: Identifiable {
+    let city: String
+    let identifier: String
+    let latitude: CLLocationDegrees
+    let longitude: CLLocationDegrees
+
+    var id: String { identifier }
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+    var timeZone: TimeZone { TimeZone(identifier: identifier) ?? .gmt }
+}
+
+private struct TimeZoneStrip: View {
+    let destinations: [TimeZoneDestination]
+    let selectedIdentifier: String
+    let select: (TimeZoneDestination) -> Void
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 8) {
+                    ForEach(destinations) { destination in
+                        Button {
+                            select(destination)
+                        } label: {
+                            VStack(spacing: 2) {
+                                Text(destination.city)
+                                    .font(.caption.weight(.semibold))
+                                Text(TimeZoneFormatting.time(context.date, in: destination.timeZone))
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background {
+                                if destination.identifier == selectedIdentifier {
+                                    Capsule().fill(.primary.opacity(0.10))
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 10)
+            }
+            .frame(height: 54)
+            .background {
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.58)
+            }
+            .overlay {
+                Capsule()
+                    .stroke(.white.opacity(0.24), lineWidth: 0.75)
+            }
+        }
+    }
+}
+
+private struct TimeZoneCard: View {
+    @ObservedObject var model: TimeZoneMapModel
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            VStack(spacing: 14) {
+                VStack(spacing: 3) {
+                    Text(model.placeName)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    Text(TimeZoneFormatting.displayName(for: model.timeZone))
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.75)
+                }
+
+                AnalogClock(date: context.date, timeZone: model.timeZone)
+                    .frame(width: 132, height: 132)
+
+                Text(TimeZoneFormatting.time(context.date, in: model.timeZone))
+                    .font(.system(size: 31, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+
+                Text(TimeZoneFormatting.difference(from: .current, to: model.timeZone, at: context.date))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: 300)
+            .padding(.vertical, 20)
+            .padding(.horizontal, 24)
+            .background {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.58)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(.white.opacity(0.24), lineWidth: 0.75)
+            }
+            .shadow(color: .black.opacity(0.16), radius: 24, y: 10)
+        }
+    }
+}
+
+private struct Crosshair: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .opacity(0.58)
+                .frame(width: 38, height: 38)
+                .overlay {
+                    Circle()
+                        .stroke(.white.opacity(0.24), lineWidth: 0.75)
+                }
+            Image(systemName: "plus")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(.primary)
+        }
+        .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
+    }
+}
+
+private struct AnalogClock: View {
+    let date: Date
+    let timeZone: TimeZone
+
+    private var components: DateComponents {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar.dateComponents([.hour, .minute, .second], from: date)
+    }
+
+    var body: some View {
+        let hour = Double(components.hour ?? 0).truncatingRemainder(dividingBy: 12)
+        let minute = Double(components.minute ?? 0)
+        let second = Double(components.second ?? 0)
+
+        ZStack {
+            clockFace
+            Circle()
+                .stroke(.white.opacity(0.28), lineWidth: 0.75)
+
+            Canvas { context, size in
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                let radius = min(size.width, size.height) / 2
+
+                for index in 0..<12 {
+                    let angle = Double(index) * .pi / 6 - .pi / 2
+                    let isQuarter = index % 3 == 0
+                    let outerRadius = radius - 9
+                    let innerRadius = outerRadius - (isQuarter ? 11 : 7)
+                    var tick = Path()
+                    tick.move(to: CGPoint(
+                        x: center.x + cos(angle) * innerRadius,
+                        y: center.y + sin(angle) * innerRadius
+                    ))
+                    tick.addLine(to: CGPoint(
+                        x: center.x + cos(angle) * outerRadius,
+                        y: center.y + sin(angle) * outerRadius
+                    ))
+                    context.stroke(
+                        tick,
+                        with: .color(.primary.opacity(isQuarter ? 0.8 : 0.35)),
+                        style: StrokeStyle(lineWidth: isQuarter ? 3 : 2, lineCap: .round)
+                    )
+                }
+
+                let hands: [(value: Double, length: CGFloat, width: CGFloat, color: Color)] = [
+                    ((hour + minute / 60) / 12, 32, 5, .primary),
+                    ((minute + second / 60) / 60, 45, 3.5, .primary),
+                    (second / 60, 48, 1.5, .red)
+                ]
+
+                for hand in hands {
+                    let angle = hand.value * 2 * .pi - .pi / 2
+                    var path = Path()
+                    path.move(to: center)
+                    path.addLine(to: CGPoint(
+                        x: center.x + cos(angle) * hand.length,
+                        y: center.y + sin(angle) * hand.length
+                    ))
+                    context.stroke(
+                        path,
+                        with: .color(hand.color),
+                        style: StrokeStyle(lineWidth: hand.width, lineCap: .round)
+                    )
+                }
+            }
+
+            Circle()
+                .fill(.red)
+                .frame(width: 8, height: 8)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(TimeZoneFormatting.time(date, in: timeZone))
+    }
+
+    @ViewBuilder
+    private var clockFace: some View {
+        if #available(iOS 26.0, *) {
+            Circle()
+                .fill(.clear)
+                .glassEffect(.clear, in: .circle)
+                .opacity(0.48)
+        } else {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .opacity(0.55)
+        }
+    }
+}
+
+private extension View {
+    func statusPillStyle() -> some View {
+        self
+            .font(.footnote.weight(.medium))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.regularMaterial, in: Capsule())
+            .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
     }
 }
 
