@@ -30,6 +30,8 @@ struct ContentView: View {
     )
     @State private var cardOffset: CGSize = .zero
     @GestureState private var cardDragOffset: CGSize = .zero
+    @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
+    @State private var isShowingHelp = false
 
     private var selectedBoundaryIdentifiers: Set<String> {
         let identifiers = Set(boundaryModel.polygons.map(\.timeZoneIdentifier))
@@ -107,12 +109,41 @@ struct ContentView: View {
             }
             .navigationTitle("World Time")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isShowingHelp = true
+                    } label: {
+                        Label("Hilfe", systemImage: "questionmark.circle")
+                    }
+                }
+            }
             .task {
                 guard !model.hasResolvedInitialLocation else { return }
                 model.resolveTimeZone(at: CLLocationCoordinate2D(latitude: 30, longitude: 0))
             }
             .task {
                 await boundaryModel.loadIfNeeded()
+            }
+        }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { !hasSeenWelcome },
+                set: { isPresented in
+                    if !isPresented {
+                        hasSeenWelcome = true
+                    }
+                }
+            )
+        ) {
+            WelcomeView(buttonTitle: "Los geht’s") {
+                hasSeenWelcome = true
+            }
+            .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $isShowingHelp) {
+            WelcomeView(buttonTitle: "Schließen") {
+                isShowingHelp = false
             }
         }
     }
@@ -134,6 +165,107 @@ struct ContentView: View {
         case .failed:
             Label("Hier konnte keine Zeitzone bestimmt werden", systemImage: "exclamationmark.triangle")
                 .statusPillStyle()
+        }
+    }
+}
+
+private struct WelcomeView: View {
+    let buttonTitle: String
+    let dismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 28) {
+                    VStack(spacing: 14) {
+                        Image(systemName: "globe.europe.africa.fill")
+                            .font(.system(size: 76))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.blue)
+                            .accessibilityHidden(true)
+
+                        Text("Willkommen bei iMapView")
+                            .font(.largeTitle.bold())
+                            .multilineTextAlignment(.center)
+
+                        Text("Entdecke Zeitzonen auf der Weltkarte und vergleiche die Ortszeit auf einen Blick.")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    VStack(alignment: .leading, spacing: 22) {
+                        WelcomeFeature(
+                            icon: "hand.draw",
+                            title: "Karte bewegen",
+                            description: "Positioniere das Fadenkreuz über einem Ort, um dessen Zeitzone anzuzeigen."
+                        )
+                        WelcomeFeature(
+                            icon: "map",
+                            title: "Zeitzonengrenzen erkennen",
+                            description: "Die passende Zeitzone und Gebiete mit denselben Zeitregeln werden hervorgehoben."
+                        )
+                        WelcomeFeature(
+                            icon: "clock",
+                            title: "Ortszeit vergleichen",
+                            description: "Die Uhrkarte zeigt Zeit, Namen und Unterschied zu deiner aktuellen Zeitzone."
+                        )
+                        WelcomeFeature(
+                            icon: "arrow.left.and.right",
+                            title: "Städte direkt auswählen",
+                            description: "Wische durch die Leiste am unteren Rand und tippe auf eine Stadt."
+                        )
+                    }
+                    .frame(maxWidth: 560)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 28)
+                .padding(.top, 44)
+                .padding(.bottom, 32)
+            }
+            .background {
+                LinearGradient(
+                    colors: [.blue.opacity(0.12), .clear],
+                    startPoint: .top,
+                    endPoint: .center
+                )
+                .ignoresSafeArea()
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button(buttonTitle, action: dismiss)
+                    .font(.headline)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: 560)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .background(.bar)
+            }
+        }
+    }
+}
+
+private struct WelcomeFeature: View {
+    let icon: String
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(.blue)
+                .frame(width: 34)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(description)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }
@@ -207,6 +339,7 @@ private struct TimeZoneStrip: View {
                 .padding(.horizontal, 10)
             }
             .frame(height: 54)
+            .frame(maxWidth: 720)
             .background {
                 Capsule()
                     .fill(.ultraThinMaterial)
