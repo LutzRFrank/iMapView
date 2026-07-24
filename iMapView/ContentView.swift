@@ -3,6 +3,8 @@ import MapKit
 import CoreLocation
 
 struct ContentView: View {
+    private let loadsLiveData: Bool
+
     private static let destinations: [TimeZoneDestination] = [
         .init(city: "Honolulu", identifier: "Pacific/Honolulu", latitude: 21.31, longitude: -157.86),
         .init(city: "Los Angeles", identifier: "America/Los_Angeles", latitude: 34.05, longitude: -118.24),
@@ -30,6 +32,10 @@ struct ContentView: View {
     )
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
     @State private var isShowingHelp = false
+
+    init(loadsLiveData: Bool = true) {
+        self.loadsLiveData = loadsLiveData
+    }
 
     private var selectedBoundaryIdentifiers: Set<String> {
         let identifiers = Set(boundaryModel.polygons.map(\.timeZoneIdentifier))
@@ -59,6 +65,7 @@ struct ContentView: View {
                         MapScaleView()
                     }
                     .onMapCameraChange(frequency: .onEnd) { context in
+                        guard loadsLiveData else { return }
                         model.resolveTimeZone(at: context.region.center)
                     }
                     .ignoresSafeArea(edges: .bottom)
@@ -96,10 +103,12 @@ struct ContentView: View {
                 }
             }
             .task {
+                guard loadsLiveData else { return }
                 guard !model.hasResolvedInitialLocation else { return }
                 model.resolveTimeZone(at: CLLocationCoordinate2D(latitude: 30, longitude: 0))
             }
             .task {
+                guard loadsLiveData else { return }
                 await boundaryModel.loadIfNeeded()
             }
         }
@@ -532,5 +541,5 @@ private extension View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(loadsLiveData: false)
 }
