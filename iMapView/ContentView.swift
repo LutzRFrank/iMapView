@@ -28,8 +28,6 @@ struct ContentView: View {
             span: MKCoordinateSpan(latitudeDelta: 85, longitudeDelta: 85)
         )
     )
-    @State private var cardOffset: CGSize = .zero
-    @GestureState private var cardDragOffset: CGSize = .zero
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
     @State private var isShowingHelp = false
 
@@ -69,28 +67,7 @@ struct ContentView: View {
                     .allowsHitTesting(false)
 
                 VStack {
-                    TimeZoneCard(model: model)
-                        .overlay(alignment: .top) {
-                            Capsule()
-                                .fill(.secondary.opacity(0.45))
-                                .frame(width: 42, height: 5)
-                                .frame(width: 72, height: 30)
-                                .contentShape(Rectangle())
-                                .gesture(
-                                    DragGesture(minimumDistance: 2)
-                                        .updating($cardDragOffset) { value, state, _ in
-                                            state = value.translation
-                                        }
-                                        .onEnded { value in
-                                            cardOffset.width += value.translation.width
-                                            cardOffset.height += value.translation.height
-                                        }
-                                )
-                        }
-                        .offset(
-                            x: cardOffset.width + cardDragOffset.width,
-                            y: cardOffset.height + cardDragOffset.height
-                        )
+                    DraggableTimeZoneCard(model: model)
                     Spacer()
                     statusPill
                     TimeZoneStrip(destinations: Self.destinations, selectedIdentifier: model.timeZone.identifier) { destination in
@@ -166,6 +143,40 @@ struct ContentView: View {
             Label("Hier konnte keine Zeitzone bestimmt werden", systemImage: "exclamationmark.triangle")
                 .statusPillStyle()
         }
+    }
+}
+
+private struct DraggableTimeZoneCard: View {
+    @ObservedObject var model: TimeZoneMapModel
+    @State private var offset: CGSize = .zero
+    @State private var dragStartOffset: CGSize?
+
+    var body: some View {
+        TimeZoneCard(model: model)
+            .overlay(alignment: .top) {
+                Capsule()
+                    .fill(.secondary.opacity(0.45))
+                    .frame(width: 42, height: 5)
+                    .frame(width: 72, height: 30)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 2)
+                            .onChanged { value in
+                                if dragStartOffset == nil {
+                                    dragStartOffset = offset
+                                }
+                                guard let startOffset = dragStartOffset else { return }
+                                offset = CGSize(
+                                    width: startOffset.width + value.translation.width,
+                                    height: startOffset.height + value.translation.height
+                                )
+                            }
+                            .onEnded { _ in
+                                dragStartOffset = nil
+                            }
+                    )
+            }
+            .offset(offset)
     }
 }
 
