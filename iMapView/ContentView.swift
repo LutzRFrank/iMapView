@@ -201,13 +201,8 @@ private struct WelcomeView: View {
                         Image("LilFinderGuy")
                             .resizable()
                             .scaledToFit()
-                            .frame(maxWidth: 310, maxHeight: 235)
+                            .frame(maxWidth: 370, maxHeight: 270)
                             .accessibilityLabel("Lil’ Finder Guy trägt die Weltkugel")
-
-                        Text("Lil’ Finder Guy")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
 
                         Text("Willkommen bei iMapView")
                             .font(.largeTitle.bold())
