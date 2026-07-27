@@ -198,10 +198,15 @@ private struct WelcomeView: View {
             ScrollView {
                 VStack(spacing: 28) {
                     VStack(spacing: 14) {
-                        Image(systemName: "globe.europe.africa.fill")
-                            .font(.system(size: 76))
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(.blue)
+                        Image("LilFinderGuy")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: 310, maxHeight: 235)
+                            .accessibilityLabel("Lil’ Finder Guy trägt die Weltkugel")
+
+                        Text("Lil’ Finder Guy")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                             .accessibilityHidden(true)
 
                         Text("Willkommen bei iMapView")
@@ -237,6 +242,12 @@ private struct WelcomeView: View {
                         )
                     }
                     .frame(maxWidth: 560)
+
+                    Link(destination: URL(string: "https://lutzrfrank.github.io/iMapView/")!) {
+                        Label("iMap View im Web", systemImage: "safari")
+                            .font(.headline)
+                    }
+                    .accessibilityHint("Öffnet die iMap-View-Website")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 28)
