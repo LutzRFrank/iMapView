@@ -1,6 +1,6 @@
-# iMapView
+# AtlasView
 
-iMapView is an interactive world-time map for iPhone. Move the map or jump to a city to see the local time, place, time-zone name, UTC difference, and the real geographic boundary of the selected time zone.
+AtlasView is an interactive world-time map for iPhone. Move the map or jump to a city to see the local time, place, time-zone name, UTC difference, and the real geographic boundary of the selected time zone.
 
 ## Features
 

@@ -204,7 +204,7 @@ private struct WelcomeView: View {
                             .frame(maxWidth: 370, maxHeight: 270)
                             .accessibilityLabel("Lil’ Finder Guy trägt die Weltkugel")
 
-                        Text("Willkommen bei iMapView")
+                        Text("Willkommen bei AtlasView")
                             .font(.largeTitle.bold())
                             .multilineTextAlignment(.center)
 
@@ -239,7 +239,7 @@ private struct WelcomeView: View {
                     .frame(maxWidth: 560)
 
                     Link(destination: URL(string: "https://lutzrfrank.github.io/iMapView/")!) {
-                        Label("iMap View im Web", systemImage: "safari")
+                        Label("AtlasView im Web", systemImage: "safari")
                             .font(.headline)
                     }
                     .accessibilityHint("Öffnet die iMap-View-Website")

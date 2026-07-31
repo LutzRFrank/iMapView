@@ -2,17 +2,17 @@
 
 Last updated: July 21, 2026
 
-iMapView is designed to work without accounts, advertising, analytics, or tracking.
+AtlasView is designed to work without accounts, advertising, analytics, or tracking.
 
-## Data collected by iMapView
+## Data collected by AtlasView
 
-iMapView does not collect, store, sell, or share personal data. The app does not operate a developer-controlled server and does not contain third-party advertising or analytics SDKs.
+AtlasView does not collect, store, sell, or share personal data. The app does not operate a developer-controlled server and does not contain third-party advertising or analytics SDKs.
 
 ## Map and place lookup
 
 The app uses Apple MapKit to display maps and Apple's Core Location reverse-geocoding service to determine a place name and time zone for the coordinate underneath the map crosshair. These requests are handled by Apple and may require an internet connection. Apple's handling of this information is governed by Apple's privacy policy.
 
-iMapView does not request or use the device's current GPS location. Coordinates are selected by moving the map or choosing a city shortcut.
+AtlasView does not request or use the device's current GPS location. Coordinates are selected by moving the map or choosing a city shortcut.
 
 ## Data stored on the device
 
@@ -20,7 +20,7 @@ The current version does not persist map positions, selected locations, or usage
 
 ## Children's privacy
 
-Because iMapView does not collect personal data, it does not knowingly collect personal data from children.
+Because AtlasView does not collect personal data, it does not knowingly collect personal data from children.
 
 ## Changes
 
@@ -28,4 +28,4 @@ This policy may be updated if the app's features or data practices change. The r
 
 ## Contact
 
-For privacy questions, open an issue in the [iMapView GitHub repository](https://github.com/LutzRFrank/iMapView/issues).
+For privacy questions, open an issue in the [AtlasView GitHub repository](https://github.com/LutzRFrank/iMapView/issues).
