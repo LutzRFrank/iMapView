@@ -138,8 +138,22 @@ h1 span {
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 12px;
   margin-top: 30px;
+}
+
+.app-store-badge {
+  display: inline-flex;
+  transition: transform .2s ease;
+}
+
+.app-store-badge:hover { transform: translateY(-2px); }
+
+.app-store-badge img {
+  display: block;
+  width: 150px;
+  height: auto;
 }
 
 .button {
