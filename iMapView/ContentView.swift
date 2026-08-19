@@ -48,17 +48,26 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Map(position: $cameraPosition, interactionModes: .all) {
-                    ForEach(boundaryModel.polygons) { boundary in
-                        let isSelected = selectedBoundaryIdentifiers.contains(boundary.timeZoneIdentifier)
-                        MapPolygon(boundary.polygon)
-                            .foregroundStyle(isSelected ? .blue.opacity(0.08) : .clear)
-                            .stroke(
-                                isSelected ? .blue.opacity(0.72) : .primary.opacity(0.22),
-                                lineWidth: isSelected ? 1.6 : 0.65
-                            )
+                TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                    Map(position: $cameraPosition, interactionModes: .all) {
+                        ForEach(SolarTerminator.twilightOverlays(at: timeline.date)) { overlay in
+                            MapPolygon(overlay.polygon)
+                                .foregroundStyle(
+                                    Color(red: 0.025, green: 0.07, blue: 0.16)
+                                        .opacity(overlay.opacity)
+                                )
+                        }
+
+                        ForEach(boundaryModel.polygons) { boundary in
+                            let isSelected = selectedBoundaryIdentifiers.contains(boundary.timeZoneIdentifier)
+                            MapPolygon(boundary.polygon)
+                                .foregroundStyle(isSelected ? .blue.opacity(0.08) : .clear)
+                                .stroke(
+                                    isSelected ? .blue.opacity(0.72) : .primary.opacity(0.22),
+                                    lineWidth: isSelected ? 1.6 : 0.65
+                                )
+                        }
                     }
-                }
                     .mapStyle(.standard(elevation: .flat))
                     .mapControls {
                         MapCompass()
@@ -69,6 +78,7 @@ struct ContentView: View {
                         model.resolveTimeZone(at: context.region.center)
                     }
                     .ignoresSafeArea(edges: .bottom)
+                }
 
                 Crosshair()
                     .allowsHitTesting(false)
