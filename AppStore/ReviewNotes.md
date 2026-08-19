@@ -1,9 +1,9 @@
-Für die Nutzung ist kein Konto erforderlich.
+No account is required to use the app.
 
-So lässt sich die neue Tag-/Nacht-Darstellung prüfen:
+To review the new day and night display:
 
-1. Die App starten und den Willkommensbildschirm mit „Los geht’s“ schließen.
-2. Die Weltkarte weit herauszoomen oder über die Leiste am unteren Rand zu einer Stadt auf der aktuellen Nachtseite springen.
-3. Die Nachtseite erscheint dunkelblau. Zwischen Tag und Nacht ist ein weicher Dämmerungsverlauf sichtbar.
+1. Launch the app and dismiss the welcome screen by tapping “Los geht’s.”
+2. Zoom out on the world map or use the strip at the bottom to jump to a city currently on the night side.
+3. The night side appears dark blue, with a smooth twilight gradient between day and night.
 
-Die Darstellung wird vollständig auf dem Gerät anhand von Datum und Uhrzeit berechnet und einmal pro Minute aktualisiert. Die App fordert keinen Standortzugriff an. Für Kartenmaterial und die Auflösung von Ortsnamen werden Apple MapKit und Core Location verwendet.
+The display is calculated entirely on device from the current date and time and updates once per minute. The app does not request location access. Apple MapKit and Core Location are used for map content and place-name lookup.

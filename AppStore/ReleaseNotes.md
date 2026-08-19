@@ -1,3 +1,3 @@
-AtlasView zeigt jetzt auf der Weltkarte, wo gerade Tag, Dämmerung und Nacht sind. Ein weicher, live berechneter Farbverlauf dunkelt die Nachtseite der Erde dezent ab und macht den Wechsel zwischen den Tageszeiten auf einen Blick sichtbar.
+AtlasView now shows where it is currently day, twilight, and night on the world map. A smooth, live-calculated gradient subtly darkens the night side of Earth, making changing daylight conditions visible at a glance.
 
-Außerdem haben wir die Darstellung an der Datumsgrenze und in den Polarregionen optimiert.
+We have also optimized the display around the International Date Line and in the polar regions.
