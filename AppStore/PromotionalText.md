@@ -1,1 +1,1 @@
-Explore time zones around the globe—now with a live-calculated view of day, twilight, and night directly on the world map.
+Ready for iPhone Duo: explore time zones on the unfolded display, move the clock card, and follow day, twilight, and night around the globe.

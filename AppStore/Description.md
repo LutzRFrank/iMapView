@@ -4,6 +4,8 @@ The map shows the real geographic boundaries of time zones. Areas that share the
 
 A live-calculated day and night view also shows where it is currently day, twilight, or night. The smooth gradient follows the current position of the sun and updates automatically.
 
+AtlasView adapts to iPhone Duo’s outer and unfolded inner displays. The clock card starts at the side in wide windows and can be dragged within the available area.
+
 Features:
 
 - Interactive world map with a freely movable crosshair
@@ -13,6 +15,8 @@ Features:
 - Real geographic time zone boundaries
 - Highlighting of areas with matching time rules
 - Live-calculated day, twilight, and night view
+- Adaptive layout for iPhone Duo’s outer and inner displays
+- Draggable clock card with bounds that adapt to window resizing
 - Quick access to international cities
 - Correct handling of daylight saving time and fractional UTC offsets
 

@@ -1,3 +1,3 @@
-AtlasView now shows where it is currently day, twilight, and night on the world map. A smooth, live-calculated gradient subtly darkens the night side of Earth, making changing daylight conditions visible at a glance.
+AtlasView is ready for iPhone Duo. Explore the world map across the outer and unfolded inner displays. On wider windows, the clock card starts at the side to keep the map center clear. Its draggable position adapts when the available space changes.
 
-We have also optimized the display around the International Date Line and in the polar regions.
+The live day, twilight, and night view remains available on all supported devices.

@@ -47,59 +47,66 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                TimelineView(.periodic(from: .now, by: 60)) { timeline in
-                    Map(position: $cameraPosition, interactionModes: .all) {
-                        ForEach(SolarTerminator.twilightOverlays(at: timeline.date)) { overlay in
-                            MapPolygon(overlay.polygon)
-                                .foregroundStyle(
-                                    Color(red: 0.025, green: 0.07, blue: 0.16)
-                                        .opacity(overlay.opacity)
-                                )
+            GeometryReader { geometry in
+                ZStack {
+                    TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                        Map(position: $cameraPosition, interactionModes: .all) {
+                            ForEach(SolarTerminator.twilightOverlays(at: timeline.date)) { overlay in
+                                MapPolygon(overlay.polygon)
+                                    .foregroundStyle(
+                                        Color(red: 0.025, green: 0.07, blue: 0.16)
+                                            .opacity(overlay.opacity)
+                                    )
+                            }
+
+                            ForEach(boundaryModel.polygons) { boundary in
+                                let isSelected = selectedBoundaryIdentifiers.contains(boundary.timeZoneIdentifier)
+                                MapPolygon(boundary.polygon)
+                                    .foregroundStyle(isSelected ? .blue.opacity(0.08) : .clear)
+                                    .stroke(
+                                        isSelected ? .blue.opacity(0.72) : .primary.opacity(0.22),
+                                        lineWidth: isSelected ? 1.6 : 0.65
+                                    )
+                            }
                         }
-
-                        ForEach(boundaryModel.polygons) { boundary in
-                            let isSelected = selectedBoundaryIdentifiers.contains(boundary.timeZoneIdentifier)
-                            MapPolygon(boundary.polygon)
-                                .foregroundStyle(isSelected ? .blue.opacity(0.08) : .clear)
-                                .stroke(
-                                    isSelected ? .blue.opacity(0.72) : .primary.opacity(0.22),
-                                    lineWidth: isSelected ? 1.6 : 0.65
-                                )
+                        .mapStyle(.standard(elevation: .flat))
+                        .mapControls {
+                            MapCompass()
+                            MapScaleView()
                         }
+                        .onMapCameraChange(frequency: .onEnd) { context in
+                            guard loadsLiveData else { return }
+                            model.resolveTimeZone(at: context.region.center)
+                        }
+                        .ignoresSafeArea(edges: .bottom)
                     }
-                    .mapStyle(.standard(elevation: .flat))
-                    .mapControls {
-                        MapCompass()
-                        MapScaleView()
-                    }
-                    .onMapCameraChange(frequency: .onEnd) { context in
-                        guard loadsLiveData else { return }
-                        model.resolveTimeZone(at: context.region.center)
-                    }
-                    .ignoresSafeArea(edges: .bottom)
-                }
 
-                Crosshair()
-                    .allowsHitTesting(false)
+                    Crosshair()
+                        .allowsHitTesting(false)
 
-                VStack {
-                    DraggableTimeZoneCard(model: model)
-                    Spacer()
-                    statusPill
-                    TimeZoneStrip(destinations: Self.destinations, selectedIdentifier: model.timeZone.identifier) { destination in
-                        withAnimation(.easeInOut(duration: 0.8)) {
-                            cameraPosition = .region(
-                                MKCoordinateRegion(
-                                    center: destination.coordinate,
-                                    span: MKCoordinateSpan(latitudeDelta: 12, longitudeDelta: 12)
-                                )
+                    VStack {
+                        GeometryReader { cardArea in
+                            DraggableTimeZoneCard(
+                                model: model,
+                                availableSize: cardArea.size,
+                                alignsLeading: geometry.size.width >= 760
                             )
                         }
-                        model.resolveTimeZone(at: destination.coordinate)
+                        statusPill
+                        TimeZoneStrip(destinations: Self.destinations, selectedIdentifier: model.timeZone.identifier) { destination in
+                            withAnimation(.easeInOut(duration: 0.8)) {
+                                cameraPosition = .region(
+                                    MKCoordinateRegion(
+                                        center: destination.coordinate,
+                                        span: MKCoordinateSpan(latitudeDelta: 12, longitudeDelta: 12)
+                                    )
+                                )
+                            }
+                            model.resolveTimeZone(at: destination.coordinate)
+                        }
                     }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("World Time")
             .navigationBarTitleDisplayMode(.inline)
@@ -167,11 +174,37 @@ struct ContentView: View {
 
 private struct DraggableTimeZoneCard: View {
     @ObservedObject var model: TimeZoneMapModel
+    let availableSize: CGSize
+    let alignsLeading: Bool
+
+    @State private var cardSize: CGSize = .zero
     @State private var offset: CGSize = .zero
     @State private var dragStartOffset: CGSize?
 
+    // Use the current window's safe content area, including after folding or resizing.
+    private func constrainedOffset(_ proposed: CGSize) -> CGSize {
+        let horizontalSpace = max(0, availableSize.width - cardSize.width)
+        let minimumX = alignsLeading ? 0 : -horizontalSpace / 2
+        let maximumX = alignsLeading ? horizontalSpace : horizontalSpace / 2
+        return CGSize(
+            width: min(max(proposed.width, minimumX), maximumX),
+            height: min(max(proposed.height, 0), max(0, availableSize.height - cardSize.height))
+        )
+    }
+
+    private func constrainPosition() {
+        offset = constrainedOffset(offset)
+        dragStartOffset = nil
+    }
+
     var body: some View {
         TimeZoneCard(model: model)
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { size in
+                cardSize = size
+                constrainPosition()
+            }
             .overlay(alignment: .top) {
                 Capsule()
                     .fill(.secondary.opacity(0.45))
@@ -182,20 +215,23 @@ private struct DraggableTimeZoneCard: View {
                         DragGesture(minimumDistance: 2)
                             .onChanged { value in
                                 if dragStartOffset == nil {
-                                    dragStartOffset = offset
+                                    dragStartOffset = constrainedOffset(offset)
                                 }
                                 guard let startOffset = dragStartOffset else { return }
-                                offset = CGSize(
+                                offset = constrainedOffset(CGSize(
                                     width: startOffset.width + value.translation.width,
                                     height: startOffset.height + value.translation.height
-                                )
+                                ))
                             }
                             .onEnded { _ in
                                 dragStartOffset = nil
                             }
                     )
             }
-            .offset(offset)
+            .offset(constrainedOffset(offset))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignsLeading ? .topLeading : .top)
+            .onChange(of: availableSize) { _, _ in constrainPosition() }
+            .onChange(of: alignsLeading) { _, _ in constrainPosition() }
     }
 }
 
