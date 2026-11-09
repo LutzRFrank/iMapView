@@ -32,6 +32,7 @@ struct ContentView: View {
         )
     )
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome = false
+    @State private var isClockVisible = true
     @State private var isShowingHelp = false
 
     init(loadsLiveData: Bool = true) {
@@ -92,6 +93,9 @@ struct ContentView: View {
                                 availableSize: cardArea.size,
                                 alignsLeading: geometry.size.width >= 760
                             )
+                            .opacity(isClockVisible ? 1 : 0)
+                            .allowsHitTesting(isClockVisible)
+                            .accessibilityHidden(!isClockVisible)
                         }
                         statusPill
                         TimeZoneStrip(destinations: Self.destinations, selectedIdentifier: model.timeZone.identifier) { destination in
@@ -112,6 +116,16 @@ struct ContentView: View {
             .navigationTitle("World Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isClockVisible.toggle()
+                    } label: {
+                        Label(
+                            isClockVisible ? "Uhr ausblenden" : "Uhr einblenden",
+                            systemImage: isClockVisible ? "clock.fill" : "clock"
+                        )
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Picker("Kartentyp", selection: $mapType) {
@@ -490,9 +504,9 @@ private struct TimeZoneCard: View {
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: 300)
             .padding(.vertical, 20)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 18)
+            .frame(maxWidth: 280)
             .background {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(.ultraThinMaterial)
