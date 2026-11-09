@@ -24,6 +24,7 @@ struct ContentView: View {
 
     @StateObject private var model = TimeZoneMapModel()
     @StateObject private var boundaryModel = TimeZoneBoundaryModel()
+    @State private var mapType: AtlasMapType = .standard
     @State private var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 30, longitude: 0),
@@ -69,7 +70,7 @@ struct ContentView: View {
                                     )
                             }
                         }
-                        .mapStyle(.standard(elevation: .flat))
+                        .mapStyle(mapType.style)
                         .mapControls {
                             MapCompass()
                             MapScaleView()
@@ -111,6 +112,18 @@ struct ContentView: View {
             .navigationTitle("World Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Picker("Kartentyp", selection: $mapType) {
+                            ForEach(AtlasMapType.allCases, id: \.self) { type in
+                                Text(type.title).tag(type)
+                            }
+                        }
+                    } label: {
+                        Label("Kartentyp", systemImage: "map")
+                    }
+                    .accessibilityValue(mapType.title)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isShowingHelp = true
@@ -172,6 +185,28 @@ struct ContentView: View {
     }
 }
 
+private enum AtlasMapType: CaseIterable {
+    case standard
+    case hybrid
+    case satellite
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .standard: "Standard"
+        case .hybrid: "Hybrid"
+        case .satellite: "Satellit"
+        }
+    }
+
+    var style: MapStyle {
+        switch self {
+        case .standard: .standard(elevation: .flat)
+        case .hybrid: .hybrid(elevation: .flat)
+        case .satellite: .imagery(elevation: .flat)
+        }
+    }
+}
+
 private struct DraggableTimeZoneCard: View {
     @ObservedObject var model: TimeZoneMapModel
     let availableSize: CGSize
@@ -212,7 +247,7 @@ private struct DraggableTimeZoneCard: View {
                     .frame(width: 72, height: 30)
                     .contentShape(Rectangle())
                     .gesture(
-                        DragGesture(minimumDistance: 2)
+                        DragGesture(minimumDistance: 2, coordinateSpace: .global)
                             .onChanged { value in
                                 if dragStartOffset == nil {
                                     dragStartOffset = constrainedOffset(offset)
@@ -506,78 +541,65 @@ private struct AnalogClock: View {
         let minute = Double(components.minute ?? 0)
         let second = Double(components.second ?? 0)
 
-        ZStack {
-            clockFace
-            Circle()
-                .stroke(.white.opacity(0.28), lineWidth: 0.75)
+        let face = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        let foregroundColor = Color.black.opacity(0.85)
+        let secondHandColor = Color(red: 0.72, green: 0.04, blue: 0.10)
+        return Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let radius = min(size.width, size.height) / 2
 
-            Canvas { context, size in
-                let center = CGPoint(x: size.width / 2, y: size.height / 2)
-                let radius = min(size.width, size.height) / 2
-
-                for index in 0..<12 {
-                    let angle = Double(index) * .pi / 6 - .pi / 2
-                    let isQuarter = index % 3 == 0
-                    let outerRadius = radius - 9
-                    let innerRadius = outerRadius - (isQuarter ? 11 : 7)
-                    var tick = Path()
-                    tick.move(to: CGPoint(
-                        x: center.x + cos(angle) * innerRadius,
-                        y: center.y + sin(angle) * innerRadius
-                    ))
-                    tick.addLine(to: CGPoint(
-                        x: center.x + cos(angle) * outerRadius,
-                        y: center.y + sin(angle) * outerRadius
-                    ))
-                    context.stroke(
-                        tick,
-                        with: .color(.primary.opacity(isQuarter ? 0.8 : 0.35)),
-                        style: StrokeStyle(lineWidth: isQuarter ? 3 : 2, lineCap: .round)
-                    )
-                }
-
-                let hands: [(value: Double, length: CGFloat, width: CGFloat, color: Color)] = [
-                    ((hour + minute / 60) / 12, 32, 5, .primary),
-                    ((minute + second / 60) / 60, 45, 3.5, .primary),
-                    (second / 60, 48, 1.5, .red)
-                ]
-
-                for hand in hands {
-                    let angle = hand.value * 2 * .pi - .pi / 2
-                    var path = Path()
-                    path.move(to: center)
-                    path.addLine(to: CGPoint(
-                        x: center.x + cos(angle) * hand.length,
-                        y: center.y + sin(angle) * hand.length
-                    ))
-                    context.stroke(
-                        path,
-                        with: .color(hand.color),
-                        style: StrokeStyle(lineWidth: hand.width, lineCap: .round)
-                    )
-                }
+            func point(turn: Double, distance: CGFloat) -> CGPoint {
+                let angle = (turn - 0.25) * 2 * .pi
+                return CGPoint(
+                    x: center.x + cos(angle) * radius * distance,
+                    y: center.y + sin(angle) * radius * distance
+                )
             }
 
-            Circle()
-                .fill(.red)
-                .frame(width: 8, height: 8)
+            for index in 0..<60 {
+                let turn = Double(index) / 60
+                let isHour = index.isMultiple(of: 5)
+                var tick = Path()
+                tick.move(to: point(turn: turn, distance: isHour ? 0.84 : 0.88))
+                tick.addLine(to: point(turn: turn, distance: 0.94))
+                context.stroke(
+                    tick,
+                    with: .color(.black.opacity(isHour ? 0.62 : 0.34)),
+                    style: StrokeStyle(lineWidth: isHour ? 1.4 : 1, lineCap: .round)
+                )
+            }
+
+            for number in 1...12 {
+                let label = Text(verbatim: "\(number)")
+                    .font(.system(size: radius * 0.23, weight: .semibold, design: .rounded))
+                    .foregroundStyle(foregroundColor)
+                context.draw(label, at: point(turn: Double(number) / 12, distance: 0.72))
+            }
+
+            let hands: [(turn: Double, length: CGFloat, width: CGFloat, color: Color)] = [
+                ((hour + minute / 60) / 12, 0.53, 4.5, foregroundColor),
+                ((minute + second / 60) / 60, 0.78, 3.5, foregroundColor),
+                (second / 60, 0.88, 2.4, secondHandColor)
+            ]
+
+            for hand in hands {
+                var path = Path()
+                path.move(to: center)
+                path.addLine(to: point(turn: hand.turn, distance: hand.length))
+                context.stroke(
+                    path,
+                    with: .color(hand.color),
+                    style: StrokeStyle(lineWidth: hand.width, lineCap: .round)
+                )
+            }
+
+            let pivot = CGRect(x: center.x - 2.5, y: center.y - 2.5, width: 5, height: 5)
+            context.fill(Path(ellipseIn: pivot), with: .color(secondHandColor))
         }
+        .background(.white.opacity(0.40), in: face)
+        .overlay { face.strokeBorder(.white.opacity(0.42), lineWidth: 0.75) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(TimeZoneFormatting.time(date, in: timeZone))
-    }
-
-    @ViewBuilder
-    private var clockFace: some View {
-        if #available(iOS 26.0, *) {
-            Circle()
-                .fill(.clear)
-                .glassEffect(.clear, in: .circle)
-                .opacity(0.48)
-        } else {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .opacity(0.55)
-        }
     }
 }
 

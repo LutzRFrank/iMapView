@@ -1,1 +1,1 @@
-Ready for iPhone Duo: explore time zones on the unfolded display, move the clock card, and follow day, twilight, and night around the globe.
+Explore time zones on Standard, Hybrid, or Satellite maps. Move the translucent clock card to keep local time in view as you explore.

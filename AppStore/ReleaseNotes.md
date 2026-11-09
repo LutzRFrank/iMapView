@@ -1,3 +1,3 @@
-AtlasView is ready for iPhone Duo. Explore the world map across the outer and unfolded inner displays. On wider windows, the clock card starts at the side to keep the map center clear. Its draggable position adapts when the available space changes.
+Switch between Standard, Hybrid, and Satellite maps using the map button next to Help.
 
-The live day, twilight, and night view remains available on all supported devices.
+The movable clock card has a redesigned, translucent analog dial with clear numerals and a red second hand. It shows the local time alongside the digital display.
