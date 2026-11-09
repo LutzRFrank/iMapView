@@ -1,6 +1,6 @@
 Explore time zones on an interactive world map. Move the map or jump to a city to see its local time, time zone name, and the current time difference from where you are.
 
-Switch between Standard, Hybrid, and Satellite maps. A translucent clock card shows local time on a numbered analog dial with a red second hand, alongside a digital readout. Drag the card to keep the area you’re exploring in view.
+Switch between Standard, Hybrid, and Satellite maps. Zoom out in Satellite view to see the globe. A compact, translucent clock card shows local time on a numbered analog dial with a red second hand, alongside a digital readout. Drag the card to reposition it, or tap the clock icon to hide or show it.
 
 The map shows the real geographic boundaries of time zones. Areas that share the same time rules are highlighted together, including daylight saving time and time zones with fractional UTC offsets.
 
@@ -10,7 +10,7 @@ AtlasView adapts to iPhone Duo’s outer and unfolded inner displays. The clock 
 
 Features
 
-- Interactive world map with Standard, Hybrid, and Satellite views
+- Interactive world map with Standard, Hybrid, and Satellite views, including a globe in Satellite view
 - Translucent analog clock with a red second hand and a digital time display
 - Place and time zone names
 - Current difference from your own time zone
@@ -18,7 +18,7 @@ Features
 - Highlighting of areas with matching time rules
 - Live-calculated day, twilight, and night view
 - Adaptive layout for iPhone Duo’s outer and inner displays
-- Draggable clock card with bounds that adapt to window resizing
+- Draggable clock card that adapts to window resizing and can be hidden from the toolbar
 - Quick access to international cities
 - Correct handling of daylight saving time and fractional UTC offsets
 

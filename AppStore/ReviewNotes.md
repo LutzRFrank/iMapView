@@ -1,12 +1,13 @@
 No account is required to use the app.
 
-Version 1.3.1 adds a map style selector and updates the analog clock. The app supports iPhone, iPhone Duo, and iPad.
+Version 1.3.1 adds a map style selector with a globe in Satellite view and a toolbar button to hide or show the redesigned clock card. The app supports iPhone, iPhone Duo, and iPad.
 
 To review the map styles and clock, launch the app and dismiss the welcome screen with “Los geht’s.”
 
 1. Tap the map icon next to Help. Switch between Standard, Hybrid, and Satellit (Satellite).
-2. Check the translucent clock dial and its red second hand. Use the handle at the top to drag the card.
-3. Select a city in the bottom strip to see the analog and digital clocks update to that city’s local time.
+2. In Satellite view, pinch to zoom out until the globe appears.
+3. Check the translucent clock dial and its red second hand. Drag the card using the handle at the top, then tap the clock icon twice. The card hides and returns to its previous position.
+4. Select a city in the bottom strip to see the analog and digital clocks update to that city’s local time.
 
 To review iPhone Duo support:
 
