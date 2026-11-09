@@ -202,7 +202,7 @@ private enum AtlasMapType: CaseIterable {
         switch self {
         case .standard: .standard(elevation: .flat)
         case .hybrid: .hybrid(elevation: .flat)
-        case .satellite: .imagery(elevation: .flat)
+        case .satellite: .imagery(elevation: .realistic)
         }
     }
 }
